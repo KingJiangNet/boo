@@ -61,6 +61,8 @@ namespace Boo.Lang.Compiler
 
 		private int _maxExpansionIterations;
 
+        private Func<string, string> _outputDirectoryGenerator;
+
 		private string _outputAssembly;
 
 		private CompilerOutputType _outputType;
@@ -418,6 +420,19 @@ namespace Boo.Lang.Compiler
 			get { return _pipeline; }
 
 			set { _pipeline = value; }
+		}
+
+        /// <summary>
+        /// Gets or sets the output directory generator. In paramter: assembly file name.
+        /// </summary>
+        /// <value>
+        /// The output directory generator.
+        /// </value>
+        public Func<string, string> OutputDirectoryGenerator
+		{
+            get { return _outputDirectoryGenerator; }
+
+            set { _outputDirectoryGenerator = value; }
 		}
 
 		/// <summary>

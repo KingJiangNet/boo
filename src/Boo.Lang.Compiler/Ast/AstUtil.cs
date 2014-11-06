@@ -361,8 +361,11 @@ namespace Boo.Lang.Compiler.Ast
 		public static Constructor CreateDefaultConstructor(TypeDefinition type)
 		{
 			TypeMemberModifiers modifiers = TypeMemberModifiers.Public;
+			if (type is Module)
+				modifiers = TypeMemberModifiers.Private;
 			if (type.IsAbstract)
 				modifiers = TypeMemberModifiers.Protected;
+
 			return CreateConstructor(type, modifiers);
 		}
 

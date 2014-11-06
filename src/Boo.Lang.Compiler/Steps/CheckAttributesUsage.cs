@@ -35,6 +35,7 @@ namespace Boo.Lang.Compiler.Steps
 	using Boo.Lang.Compiler;
 	using Boo.Lang.Compiler.Ast;
 	using Boo.Lang.Compiler.TypeSystem;
+    using System.Collections.Concurrent;
 
 
 	public class CheckAttributesUsage: AbstractFastVisitorCompilerStep
@@ -100,7 +101,7 @@ namespace Boo.Lang.Compiler.Steps
 			return null;
 		}
 
-		private static Dictionary<Type, AttributeTargets> NodeUsageTargets()
+		private static ConcurrentDictionary<Type, AttributeTargets> NodeUsageTargets()
 		{
 			if (null == _nodesUsageTargets) SetupNodesUsageTargetsDictionary();
 			return _nodesUsageTargets;
@@ -142,25 +143,25 @@ namespace Boo.Lang.Compiler.Steps
 		{
 		}
 
-		private static Dictionary<Type, AttributeTargets> _nodesUsageTargets = null;
+		private static ConcurrentDictionary<Type, AttributeTargets> _nodesUsageTargets = null;
 
 		private static void SetupNodesUsageTargetsDictionary()
 		{
-			_nodesUsageTargets = new Dictionary<Type, AttributeTargets>();
-			_nodesUsageTargets.Add(typeof(Assembly), AttributeTargets.Assembly);
-			_nodesUsageTargets.Add(typeof(Ast.Module), AttributeTargets.Assembly);
-			_nodesUsageTargets.Add(typeof(ClassDefinition), AttributeTargets.Class);
-			_nodesUsageTargets.Add(typeof(StructDefinition), AttributeTargets.Struct);
-			_nodesUsageTargets.Add(typeof(EnumDefinition), AttributeTargets.Enum);
-			_nodesUsageTargets.Add(typeof(Constructor), AttributeTargets.Constructor);
-			_nodesUsageTargets.Add(typeof(Method), AttributeTargets.Method);
-			_nodesUsageTargets.Add(typeof(Property), AttributeTargets.Property);
-			_nodesUsageTargets.Add(typeof(Field), AttributeTargets.Field);
-			_nodesUsageTargets.Add(typeof(Ast.Event), AttributeTargets.Event);
-			_nodesUsageTargets.Add(typeof(InterfaceDefinition), AttributeTargets.Interface);
-			_nodesUsageTargets.Add(typeof(ParameterDeclaration), AttributeTargets.Parameter);
-			_nodesUsageTargets.Add(typeof(CallableDefinition), AttributeTargets.Delegate);
-			_nodesUsageTargets.Add(typeof(GenericParameterDeclaration), AttributeTargets.GenericParameter);
+			_nodesUsageTargets = new ConcurrentDictionary<Type, AttributeTargets>();
+			_nodesUsageTargets.TryAdd(typeof(Assembly), AttributeTargets.Assembly);
+			_nodesUsageTargets.TryAdd(typeof(Ast.Module), AttributeTargets.Assembly);
+			_nodesUsageTargets.TryAdd(typeof(ClassDefinition), AttributeTargets.Class);
+			_nodesUsageTargets.TryAdd(typeof(StructDefinition), AttributeTargets.Struct);
+			_nodesUsageTargets.TryAdd(typeof(EnumDefinition), AttributeTargets.Enum);
+			_nodesUsageTargets.TryAdd(typeof(Constructor), AttributeTargets.Constructor);
+			_nodesUsageTargets.TryAdd(typeof(Method), AttributeTargets.Method);
+			_nodesUsageTargets.TryAdd(typeof(Property), AttributeTargets.Property);
+			_nodesUsageTargets.TryAdd(typeof(Field), AttributeTargets.Field);
+			_nodesUsageTargets.TryAdd(typeof(Ast.Event), AttributeTargets.Event);
+			_nodesUsageTargets.TryAdd(typeof(InterfaceDefinition), AttributeTargets.Interface);
+			_nodesUsageTargets.TryAdd(typeof(ParameterDeclaration), AttributeTargets.Parameter);
+			_nodesUsageTargets.TryAdd(typeof(CallableDefinition), AttributeTargets.Delegate);
+			_nodesUsageTargets.TryAdd(typeof(GenericParameterDeclaration), AttributeTargets.GenericParameter);
 		}
 
 	}

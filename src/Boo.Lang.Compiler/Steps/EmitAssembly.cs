@@ -40,6 +40,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Security;
 using System.Security.Permissions;
+using System.Collections.Concurrent;
 
 using Boo.Lang.Compiler.Ast;
 using Boo.Lang.Compiler.TypeSystem.Services;
@@ -53,6 +54,7 @@ using Attribute = Boo.Lang.Compiler.Ast.Attribute;
 using Module = Boo.Lang.Compiler.Ast.Module;
 using System.Collections.Generic;
 using Method = Boo.Lang.Compiler.Ast.Method;
+using ExceptionHandler = Boo.Lang.Compiler.Ast.ExceptionHandler;
 
 namespace Boo.Lang.Compiler.Steps
 {
@@ -209,6 +211,10 @@ namespace Boo.Lang.Compiler.Steps
 			DefineResources();
 			DefineAssemblyAttributes();
 			DefineEntryPoint();
+
+            // Define the unmanaged version information resource, which 
+            // contains the attribute informaion applied earlier
+            _asmBuilder.DefineVersionInfoResource();
 
 			_moduleBuilder.CreateGlobalFunctions(); //setup global .data
 		}
@@ -5416,6 +5422,12 @@ namespace Boo.Lang.Compiler.Steps
 
 		private string TryToGetFullPath(string path)
 		{
+            // When the path is a assembly file name, generate the directory info
+            if (string.IsNullOrEmpty(Path.GetDirectoryName(path)) && base.Parameters.OutputDirectoryGenerator != null)
+            {
+                path = Path.Combine(base.Parameters.OutputDirectoryGenerator(path), path);
+            }
+
 			return Permissions.WithDiscoveryPermission(() => Path.GetFullPath(path)) ?? path;
 		}
 
@@ -5642,7 +5654,7 @@ namespace Boo.Lang.Compiler.Steps
 		}
 		static MethodInfo stringFormat;
 
-		static Dictionary<Type,MethodInfo> _Nullable_HasValue = new Dictionary<Type,MethodInfo>();
+		static ConcurrentDictionary<Type,MethodInfo> _Nullable_HasValue = new ConcurrentDictionary<Type,MethodInfo>();
 		
 		static MethodInfo GetNullableHasValue(Type type)
 		{
@@ -5650,7 +5662,7 @@ namespace Boo.Lang.Compiler.Steps
 			if (_Nullable_HasValue.TryGetValue(type, out method))
 				return method;
 			method = Types.Nullable.MakeGenericType(new Type[] {type}).GetProperty("HasValue").GetGetMethod();
-			_Nullable_HasValue.Add(type, method);
+			_Nullable_HasValue.TryAdd(type, method);
 			return method;
 		}
 	}

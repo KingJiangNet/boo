@@ -29,18 +29,19 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 
 namespace Boo.Lang.Compiler.Util
 {
 	public class MemoizedFunction<TArg, TResult>
 	{
 		private readonly Func<TArg, TResult> _function;
-		private readonly IDictionary<TArg, TResult> _cachedValues;
+        private readonly ConcurrentDictionary<TArg, TResult> _cachedValues;
 
 		public MemoizedFunction(IEqualityComparer<TArg> comparer, Func<TArg, TResult> function)
 		{
 			_function = function;
-			_cachedValues = new Dictionary<TArg, TResult>(comparer);
+            _cachedValues = new ConcurrentDictionary<TArg, TResult>(comparer);
 		}
 
 		public MemoizedFunction(Func<TArg, TResult> function) : this(SafeComparer<TArg>.Instance, function)
@@ -49,7 +50,7 @@ namespace Boo.Lang.Compiler.Util
 			//    when TKey is a MemberInfo on .NET 3.5 (not reproducible on 2.0, 4.0b1 and mono)
 		}
 
-		private MemoizedFunction(IDictionary<TArg, TResult> cachedValues, Func<TArg, TResult> function)
+        private MemoizedFunction(ConcurrentDictionary<TArg, TResult> cachedValues, Func<TArg, TResult> function)
 		{
 			_cachedValues = cachedValues;
 			_function = function;
@@ -57,7 +58,7 @@ namespace Boo.Lang.Compiler.Util
 
 		public MemoizedFunction<TArg, TResult> Clone()
 		{
-			return new MemoizedFunction<TArg, TResult>(new Dictionary<TArg, TResult>(_cachedValues), _function);
+            return new MemoizedFunction<TArg, TResult>(new ConcurrentDictionary<TArg, TResult>(_cachedValues), _function);
 		}
 
 		public ICollection<TResult> Values
@@ -72,13 +73,14 @@ namespace Boo.Lang.Compiler.Util
 				return cachedResult;
 
 			TResult newResult = _function(arg);
-			_cachedValues.Add(arg, newResult);
+			_cachedValues.TryAdd(arg, newResult);
 			return newResult;
 		}
 
 		public void Clear(TArg arg)
 		{
-			_cachedValues.Remove(arg);
+            TResult value;
+			_cachedValues.TryRemove(arg, out value);
 		}
 
 		public void Clear()
@@ -93,7 +95,7 @@ namespace Boo.Lang.Compiler.Util
 
 		public void Add(TArg arg, TResult result)
 		{
-			_cachedValues.Add(arg, result);
+			_cachedValues.TryAdd(arg, result);
 		}
 	}
 
@@ -119,7 +121,7 @@ namespace Boo.Lang.Compiler.Util
 
 	public class MemoizedFunction<T1, T2, TResult>
 	{
-		readonly Dictionary<T1, Dictionary<T2, TResult>> _cache;
+        readonly ConcurrentDictionary<T1, ConcurrentDictionary<T2, TResult>> _cache;
 		readonly Func<T1, T2, TResult> _func;
 
 		public MemoizedFunction(Func<T1, T2, TResult> func) : this(SafeComparer<T1>.Instance, func)
@@ -128,13 +130,15 @@ namespace Boo.Lang.Compiler.Util
 
 		public MemoizedFunction(IEqualityComparer<T1> comparer, Func<T1, T2, TResult> func)
 		{
-			_cache = new Dictionary<T1, Dictionary<T2, TResult>>(comparer);
+            _cache = new ConcurrentDictionary<T1, ConcurrentDictionary<T2, TResult>>(comparer);
 			_func = func;
 		}
 
 		public void Clear(T1 arg1)
 		{
-			_cache.Remove(arg1);
+			//_cache.Remove(arg1);
+            ConcurrentDictionary<T2, TResult> value;
+            _cache.TryRemove(arg1, out value);
 		}
 
 		public void Clear()
@@ -144,7 +148,7 @@ namespace Boo.Lang.Compiler.Util
 
 		public TResult Invoke(T1 arg1, T2 arg2)
 		{
-			Dictionary<T2, TResult> resultByArg2;
+            ConcurrentDictionary<T2, TResult> resultByArg2;
 			if (_cache.TryGetValue(arg1, out resultByArg2))
 			{
 				TResult cached;
@@ -156,10 +160,12 @@ namespace Boo.Lang.Compiler.Util
 
 			if (resultByArg2 == null)
 			{
-				resultByArg2 = new Dictionary<T2, TResult>();
-				_cache.Add(arg1, resultByArg2);
+                resultByArg2 = new ConcurrentDictionary<T2, TResult>();
+				//_cache.Add(arg1, resultByArg2);
+                _cache.TryAdd(arg1, resultByArg2);
 			}
-			resultByArg2.Add(arg2, result);
+			//resultByArg2.Add(arg2, result);
+            resultByArg2.TryAdd(arg2, result);
 
 			return result;
 		}

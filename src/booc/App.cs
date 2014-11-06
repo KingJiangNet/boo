@@ -97,7 +97,13 @@ namespace booc
 
 				if (context.Warnings.Count > 0)
 				{
-					Console.Error.WriteLine(context.Warnings);
+                    string result = context.Warnings.ToString();
+
+                    // Fix two many messages hanging the caller process
+                    if(result.Length > 2000)
+                        result = result.Substring(0, 2000);
+
+					Console.Error.WriteLine(result);
 					Console.Error.WriteLine(Boo.Lang.ResourceManager.Format("BooC.Warnings", context.Warnings.Count));
 				}
 
@@ -106,7 +112,16 @@ namespace booc
 				else
 				{
 					foreach (CompilerError error in context.Errors)
-						Console.Error.WriteLine(error.ToString(parameters.TraceInfo));
+                    {
+                        string result = error.ToString(parameters.TraceInfo);
+
+                        // Fix two many messages hanging the caller process
+                        if(result.Length > 2000)
+                            result = result.Substring(0, 2000);
+
+						Console.Error.WriteLine(result);
+                    }
+
 					Console.Error.WriteLine(ResourceManager.Format("BooC.Errors", context.Errors.Count));
 				}
 

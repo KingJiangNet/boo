@@ -70,12 +70,23 @@ class AbstractInterpreter:
 	def constructor([required] parser as ICompilerStep):
 		# use a private typeSystemProvider to avoid conflicting assembly
 		# definitions
-		typeSystemProvider = CompilerParameters.SharedTypeSystemProvider.Clone()
-		_compiler = BooCompiler(CompilerParameters(typeSystemProvider, true))
-		_parser = BooCompiler()
-		_imports = ImportCollection()
 		_referenceProcessor = ProcessInterpreterReferences(self)
+		_imports = ImportCollection()
+		//typeSystemProvider = CompilerParameters.SharedTypeSystemProvider.Clone()
+		_compiler = CreateCompiler()	//BooCompiler(CompilerParameters(typeSystemProvider, true))
+		_parser = CreateParser()		
+
+		_parser.Parameters.Pipeline = CompilerPipeline() { parser }
 		
+	def constructor():
+		self(Steps.Parsing())
+		
+	virtual def CreateCompiler() as BooCompiler:		
+		# use a private typeSystemProvider to avoid conflicting assembly
+		typeSystemProvider = CompilerParameters.SharedTypeSystemProvider.Clone()
+		compiler = BooCompiler(CompilerParameters(typeSystemProvider, true))
+		
+		// create pipeline
 		pipeline = Pipelines.CompileToMemory()
 		pipeline.RemoveAt(0)
 				
@@ -88,14 +99,29 @@ class AbstractInterpreter:
 		// defining callable types only once per run
 		pipeline.Add(CacheCallableTypes())
 		
-		_compiler.Parameters.Pipeline = pipeline
-		_compiler.Parameters.Ducky = true		
-		_compiler.Parameters.Environment = DeferredEnvironment() { TypeSystemServices: { InterpreterTypeSystemServices(_cachedCallableTypes) } }
+		compiler.Parameters.Pipeline = pipeline
+		compiler.Parameters.Ducky = true		
+		compiler.Parameters.Environment = DeferredEnvironment() { TypeSystemServices: { InterpreterTypeSystemServices(_cachedCallableTypes) } }
 		
-		_parser.Parameters.Pipeline = CompilerPipeline() { parser }
+		return compiler		
+
+	virtual def CreateParser() as BooCompiler:
+		return BooCompiler()		
+
+	virtual def CreateSuggestionCompiler() as BooCompiler:
+		pipeline = Pipelines.ResolveExpressions(BreakOnErrors: false)
+		pipeline.Insert(1, AddRecordedImports(_imports))
+		pipeline.Replace(Steps.ProcessMethodBodiesWithDuckTyping, ProcessExpressionsWithInterpreterNamespace(self))
+		pipeline.Add(FindCodeCompleteSuggestion())
+			
+		suggestionCompiler = BooCompiler()
+		suggestionCompiler.Parameters.Ducky = self.Ducky
+		suggestionCompiler.Parameters.Pipeline = pipeline
+		suggestionCompiler.Parameters.Environment = _compiler.Parameters.Environment
+		// keep the references in sync
+		suggestionCompiler.Parameters.References = self.References
 		
-	def constructor():
-		self(Steps.Parsing())
+		return suggestionCompiler
 		
 	abstract def Declare(name as string, type as System.Type):
 		pass
@@ -113,21 +139,20 @@ class AbstractInterpreter:
 		pass
 		
 	private def GetSuggestionCompiler():
-		if _suggestionCompiler is null:
-			pipeline = Pipelines.ResolveExpressions(BreakOnErrors: false)
-			pipeline.Insert(1, AddRecordedImports(_imports))
-			pipeline.Replace(Steps.ProcessMethodBodiesWithDuckTyping, ProcessExpressionsWithInterpreterNamespace(self))
-			pipeline.Add(FindCodeCompleteSuggestion())
-			
-			_suggestionCompiler = BooCompiler()
-			_suggestionCompiler.Parameters.Ducky = self.Ducky
-			_suggestionCompiler.Parameters.Pipeline = pipeline	
-			_suggestionCompiler.Parameters.Environment = _compiler.Parameters.Environment
-			// keep the references in sync
-			_suggestionCompiler.Parameters.References = self.References
+		if _suggestionCompiler is null:			
+			_suggestionCompiler = CreateSuggestionCompiler()
 			
 		return _suggestionCompiler
+
+	Compiler:
+		get: return _compiler
 		
+	Parser:
+		get: return _parser
+		
+	SuggestionCompiler:
+		get: return _suggestionCompiler		
+
 	Pipeline:
 		get: return _compiler.Parameters.Pipeline
 			
@@ -193,16 +218,16 @@ class AbstractInterpreter:
 			return match.Groups[1].Value
 		return code
 		
-	def Eval([required] code as string):
+	virtual def Eval([required] code as string):
 		return CompilerContext(false) if 0 == len(code)
 		return EvalCompilerInput(StringInput("input${++_inputId}", code))
 		
-	def EvalCompilerInput(input as ICompilerInput):
+	virtual def EvalCompilerInput(input as ICompilerInput):
 		result = Parse(input)
 		return result if len(result.Errors)
 		return EvalCompileUnit(result.CompileUnit)
 		
-	def EvalCompileUnit(cu as CompileUnit):
+	virtual def EvalCompileUnit(cu as CompileUnit):
 		assert 1 == len(cu.Modules)
 		
 		module = cu.Modules[0]
@@ -241,16 +266,19 @@ class AbstractInterpreter:
 		
 		RecordImports(savedImports)
 		
-		asm = result.GeneratedAssembly
+		ExecuteCompilerContext(result, module)
+			
+		return result
+	
+	virtual def ExecuteCompilerContext(compilerContext as CompilerContext, module as Module):
+		asm = compilerContext.GeneratedAssembly
 		_compiler.Parameters.References.Add(asm)
 		
 		InitializeModuleInterpreter(asm, module)
 		
 		ExecuteEntryPoint(asm) if asm.EntryPoint is not null
-			
-		return result
 		
-	def ExecuteEntryPoint(asm as System.Reflection.Assembly):
+	virtual def ExecuteEntryPoint(asm as System.Reflection.Assembly):
 		AppDomain.CurrentDomain.AssemblyResolve += AppDomain_AssemblyResolve
 		try:
 			asm.EntryPoint.Invoke(null, (null,)) 
@@ -263,12 +291,12 @@ class AbstractInterpreter:
 				return reference.Assembly
 		return null
 		
-	def Parse(input as ICompilerInput):
+	virtual def Parse(input as ICompilerInput):
 		_parser.Parameters.Input.Clear()
 		_parser.Parameters.Input.Add(input)
 		return _parser.Run()
 	
-	private def InitializeModuleInterpreter(asm as System.Reflection.Assembly,
+	def InitializeModuleInterpreter(asm as System.Reflection.Assembly,
 										module as Module):
 		moduleType = GetGeneratedType(asm, GetEntity(GetModuleEntity(module).ModuleClass))
 		moduleType.GetField("ParentInterpreter").SetValue(null, self)
@@ -504,10 +532,13 @@ class AbstractInterpreter:
 	
 			module = GetModuleEntity(node).ModuleClass
 			return false unless module
-	
-			_interpreterField = CodeBuilder.CreateField("ParentInterpreter", TypeSystemServices.Map(AbstractInterpreter))
-			_interpreterField.Modifiers = TypeMemberModifiers.Public | TypeMemberModifiers.Static
-			module.Members.Add(_interpreterField)
+
+			_interpreterField = module.Members.FirstOrDefault({ item as TypeMember | return item.Name == "ParentInterpreter" })
+			
+			if _interpreterField is null:
+				_interpreterField = CodeBuilder.CreateField("ParentInterpreter", TypeSystemServices.Map(AbstractInterpreter))
+				_interpreterField.Modifiers = TypeMemberModifiers.Public | TypeMemberModifiers.Static
+				module.Members.Add(_interpreterField)
 	
 			return true
 			

@@ -32,6 +32,7 @@ using System.Reflection;
 using System.Collections.Generic;
 using Boo.Lang.Compiler.Ast;
 using Boo.Lang.Compiler.Util;
+using System.Collections.Concurrent;
 
 namespace Boo.Lang.Compiler.TypeSystem
 {
@@ -65,7 +66,7 @@ namespace Boo.Lang.Compiler.TypeSystem
 		}
 
 		private static readonly MemberInfo[] NoExtensions = new MemberInfo[0];
-		private static Dictionary<Type, MemberInfo[]> _clrExtensionsMembers = new Dictionary<Type, MemberInfo[]>();
+		private static ConcurrentDictionary<Type, MemberInfo[]> _clrExtensionsMembers = new ConcurrentDictionary<Type, MemberInfo[]>();
 
 		public static MemberInfo[] GetClrExtensions(Type type, string memberName)
 		{
@@ -76,12 +77,12 @@ namespace Boo.Lang.Compiler.TypeSystem
 			{
 				if (!IsAttributeDefined(type, Types.ClrExtensionAttribute))
 				{
-					_clrExtensionsMembers.Add(type, NoExtensions);
+					_clrExtensionsMembers.TryAdd(type, NoExtensions);
 				}
 				else
 				{
 					members = type.FindMembers(MemberTypes.Method, BindingFlags.Public | BindingFlags.Static, ClrExtensionFilter, memberName);
-					_clrExtensionsMembers.Add(type, members);
+					_clrExtensionsMembers.TryAdd(type, members);
 				}
 			}
 			return members ?? NoExtensions;

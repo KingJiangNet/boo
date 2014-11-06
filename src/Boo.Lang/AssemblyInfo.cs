@@ -45,4 +45,4 @@ using System.Security;
 [assembly: AssemblyKeyName("")]
 
 [assembly: System.Resources.NeutralResourcesLanguage("en")]
-[assembly: AllowPartiallyTrustedCallers]
+//[assembly: AllowPartiallyTrustedCallers]

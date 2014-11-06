@@ -48,6 +48,7 @@ using Boo.Lang.Compiler.Util;
 using Boo.Lang.Environments;
 using Attribute = System.Attribute;
 using Module = Boo.Lang.Compiler.Ast.Module;
+using System.Collections.Concurrent;
 
 namespace Boo.Lang.Compiler.TypeSystem
 {
@@ -119,7 +120,7 @@ namespace Boo.Lang.Compiler.TypeSystem
 
 		private Module _compilerGeneratedTypesModule;
 		private readonly Set<string> _literalPrimitives = new Set<string>();
-		private readonly Dictionary<string, IEntity> _primitives = new Dictionary<string, IEntity>(StringComparer.Ordinal);
+		private readonly ConcurrentDictionary<string, IEntity> _primitives = new ConcurrentDictionary<string, IEntity>(StringComparer.Ordinal);
 		private DowncastPermissions _downcastPermissions;
 		private readonly MemoizedFunction<IType, IType, IMethod> _findImplicitConversionOperator;
 		private readonly MemoizedFunction<IType, IType, IMethod> _findExplicitConversionOperator;

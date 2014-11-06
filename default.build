@@ -6,9 +6,11 @@
 	<property name="boo.version" value="${boo.major.minor.release.version}.${boo.build.number}" dynamic="True" />
 	<property name="boo.assembly.version" value="2.${boo.major.minor.release.version}" />
 	
-	<property name="debug" value="true" />
-	<property name="optimize" value="false" />
+	<property name="debug" value="false" />
+	<property name="optimize" value="true" />
 	<property name="verbose" value="false" />
+
+	<property name="nant.settings.currentframework" value="net-4.0" />
 	
 	<property name="mono" value="${'mono' == framework::get-family(framework::get-runtime-framework())}" />
 
@@ -264,9 +266,11 @@
 		</boo>
 	</target>
 	
-	<target name="Boo.Lang.PatternMatching" depends="core">
-	
-		<booc target="library" output="${build.dir}/Boo.Lang.PatternMatching.dll">
+	<target name="Boo.Lang.PatternMatching" depends="core">	
+		<booc target="library" 
+			output="${build.dir}/Boo.Lang.PatternMatching.dll"
+			verbose="${verbose}"
+		        debug="${debug}">
 			<sources basedir="src/Boo.Lang.PatternMatching">
 				<include name="**/*.boo" />
 			</sources>
