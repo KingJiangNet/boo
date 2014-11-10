@@ -1,0 +1,122 @@
+ .../Steps/IntroduceModuleClasses.cs                | 74 ++++++++++++----------
+ 1 file changed, 41 insertions(+), 33 deletions(-)
+
+diff --git a/src/Boo.Lang.Compiler/Steps/IntroduceModuleClasses.cs b/src/Boo.Lang.Compiler/Steps/IntroduceModuleClasses.cs
+index a77619f..0170323 100644
+--- a/src/Boo.Lang.Compiler/Steps/IntroduceModuleClasses.cs
++++ b/src/Boo.Lang.Compiler/Steps/IntroduceModuleClasses.cs
+@@ -27,12 +27,13 @@
+ #endregion
+ 
+ using System.Text;
+-using Boo.Lang.Compiler.Ast;
+-using Boo.Lang.Compiler.TypeSystem;
+ using Boo.Lang.Compiler.TypeSystem.Internal;
+ 
+ namespace Boo.Lang.Compiler.Steps
+ {
++	using Boo.Lang.Compiler;
++	using Boo.Lang.Compiler.Ast;
++	using Boo.Lang.Compiler.TypeSystem;
+ 	
+ 	public class IntroduceModuleClasses : AbstractFastVisitorCompilerStep
+ 	{
+@@ -42,13 +43,21 @@ namespace Boo.Lang.Compiler.Steps
+ 		
+ 		public static bool IsModuleClass(TypeMember member)
+ 		{
+-			return NodeType.ClassDefinition == member.NodeType && member.Attributes.Contains(ModuleAttributeName);
++			return NodeType.ClassDefinition == member.NodeType &&
++					member.Attributes.Contains(ModuleAttributeName);
+ 		}
+ 		
+ 		protected IType _booModuleAttributeType;
+-
+-		public bool ForceModuleClass { get; set; }
+-
++		
++		protected bool _forceModuleClass = false;
++		
++		public bool ForceModuleClass
++		{
++			get { return _forceModuleClass; }
++			
++			set { _forceModuleClass = value; }
++		}
++		
+ 		override public void Initialize(CompilerContext context)
+ 		{
+ 			base.Initialize(context);
+@@ -84,10 +93,16 @@ namespace Boo.Lang.Compiler.Steps
+ 		}
+ 		
+ 		override public void OnModule(Module node)
+-		{	
+-			var existingModuleClass = FindModuleClass(node);
+-			var moduleClass = existingModuleClass ?? NewModuleClassFor(node);
+-
++		{
++			bool hasModuleClass = true;
++			ClassDefinition moduleClass = FindModuleClass(node);
++			if (null == moduleClass)
++			{
++				moduleClass = new ClassDefinition(node.LexicalInfo);
++				moduleClass.IsSynthetic = true;
++				hasModuleClass = false;
++			}
++			
+ 			Method entryPoint = moduleClass.Members["Main"] as Method;
+ 			
+ 			int removed = 0;
+@@ -127,35 +142,28 @@ namespace Boo.Lang.Compiler.Steps
+ 			}
+ 			
+ 			SetEntryPointIfNecessary(entryPoint);
+-
+-			if (existingModuleClass != null || ForceModuleClass || (moduleClass.Members.Count > 0))
++			
++			if (hasModuleClass || _forceModuleClass || (moduleClass.Members.Count > 0))
+ 			{
+-				if (moduleClass != existingModuleClass)
++				if (!hasModuleClass)
+ 				{
+-					moduleClass.Members.Add(AstUtil.CreateConstructor(node, TypeMemberModifiers.Private));
++					moduleClass.Name = BuildModuleClassName(node);
++					moduleClass.Attributes.Add(CreateBooModuleAttribute());
+ 					node.Members.Add(moduleClass);
+ 				}
+-				InitializeModuleClassEntity(node, moduleClass);
+-			}
+-		}
+ 
+-		private ClassDefinition NewModuleClassFor(Module node)
+-		{
+-			var moduleClass = new ClassDefinition(node.LexicalInfo)
+-			              	{
+-			              		IsSynthetic = true,
+-			              		Modifiers = TypeMemberModifiers.Public | TypeMemberModifiers.Final | TypeMemberModifiers.Transient,
+-			              		EndSourceLocation = node.EndSourceLocation,
+-			              		Name = BuildModuleClassName(node)
+-			              	};
+-			moduleClass.Attributes.Add(CreateBooModuleAttribute());
+-			return moduleClass;
+-		}
++				if (!moduleClass.HasInstanceConstructor)
++					moduleClass.Members.Add(AstUtil.CreateDefaultConstructor(node));
+ 
+-		private void InitializeModuleClassEntity(Module node, ClassDefinition moduleClass)
+-		{
+-			InternalModule entity = ((InternalModule)node.Entity);
+-			if (null != entity) entity.InitializeModuleClass(moduleClass);
++				moduleClass.Modifiers = TypeMemberModifiers.Public |
++										TypeMemberModifiers.Final |
++										TypeMemberModifiers.Transient;
++										
++				moduleClass.EndSourceLocation = node.EndSourceLocation;
++				
++				InternalModule entity = ((InternalModule)node.Entity);
++				if (null != entity) entity.InitializeModuleClass(moduleClass);
++			}
+ 		}
+ 
+ 		private void SetEntryPointIfNecessary(Method entryPoint)

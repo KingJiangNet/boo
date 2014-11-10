@@ -1,0 +1,17 @@
+ src/Boo.Lang.Compiler/Ast/AstUtil.cs | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/src/Boo.Lang.Compiler/Ast/AstUtil.cs b/src/Boo.Lang.Compiler/Ast/AstUtil.cs
+index 3448fc1..684b006 100755
+--- a/src/Boo.Lang.Compiler/Ast/AstUtil.cs
++++ b/src/Boo.Lang.Compiler/Ast/AstUtil.cs
+@@ -361,8 +361,7 @@ namespace Boo.Lang.Compiler.Ast
+ 		public static Constructor CreateDefaultConstructor(TypeDefinition type)
+ 		{
+ 			TypeMemberModifiers modifiers = TypeMemberModifiers.Public;
+-			if (type is Module)
+-				modifiers = TypeMemberModifiers.Private;
++
+ 			if (type.IsAbstract)
+ 				modifiers = TypeMemberModifiers.Protected;
+ 

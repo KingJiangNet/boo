@@ -1,0 +1,24 @@
+ src/Boo.Lang.Compiler/Util/Methods.cs | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/src/Boo.Lang.Compiler/Util/Methods.cs b/src/Boo.Lang.Compiler/Util/Methods.cs
+index 42f1ff1..a57e79b 100755
+--- a/src/Boo.Lang.Compiler/Util/Methods.cs
++++ b/src/Boo.Lang.Compiler/Util/Methods.cs
+@@ -108,8 +108,14 @@ namespace Boo.Lang.Compiler.Util
+ 		private static MethodInfo MethodInfoFromLambdaExpressionBody(Expression expression)
+ 		{
+ 			// Convert(CreateDelegate(DelegateType, instance, member))
+-			var methodRef = ((MethodCallExpression) ((UnaryExpression) expression).Operand).Arguments[2];
+-			return (MethodInfo) ((ConstantExpression) methodRef).Value;
++            var args = ((MethodCallExpression) ((UnaryExpression) expression).Operand).Arguments;
++
++            if(args.Count > 2)
++            {
++			    var methodRef = args[2];
++    			return (MethodInfo) ((ConstantExpression) methodRef).Value;
++            }
++            return null;
+ 		}
+ 
+ 		public static ConstructorInfo ConstructorOf<T>(Expression<Func<T>> func)

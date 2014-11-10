@@ -1,0 +1,13 @@
+ src/Boo.Lang.Extensions/Environments/EnvironmentExtensions.boo | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/src/Boo.Lang.Extensions/Environments/EnvironmentExtensions.boo b/src/Boo.Lang.Extensions/Environments/EnvironmentExtensions.boo
+index 39572e8..3f9ed8a 100755
+--- a/src/Boo.Lang.Extensions/Environments/EnvironmentExtensions.boo
++++ b/src/Boo.Lang.Extensions/Environments/EnvironmentExtensions.boo
+@@ -55,5 +55,3 @@ static class EnvironmentExtensions:
+ 		public Result as TResult
+ 		def Action():
+ 			Result = Function()
+-			
+-[assembly: Extension]
