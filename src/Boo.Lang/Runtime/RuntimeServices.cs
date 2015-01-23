@@ -68,6 +68,18 @@ namespace Boo.Lang.Runtime
 
 		public delegate void CodeBlock();
 
+        private static bool _shouldCallCoerceInEmitAssembly = true;
+        public static bool ShouldCallCoerceInEmitAssembly
+        {
+            get { return _shouldCallCoerceInEmitAssembly; }
+            set { _shouldCallCoerceInEmitAssembly = value; }
+        }
+
+        public static void Clear()
+        {
+            _cache.Clear();
+        }
+
 		public static void WithExtensions(Type extensions, CodeBlock block)
 		{
 			RegisterExtensions(extensions);

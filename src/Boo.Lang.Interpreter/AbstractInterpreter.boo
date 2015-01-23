@@ -538,6 +538,9 @@ class AbstractInterpreter:
 			if _interpreterField is null:
 				_interpreterField = CodeBuilder.CreateField("ParentInterpreter", TypeSystemServices.Map(AbstractInterpreter))
 				_interpreterField.Modifiers = TypeMemberModifiers.Public | TypeMemberModifiers.Static
+
+				_interpreterField.Attributes.Add(CodeBuilder.CreateAttribute(typeof(System.ThreadStaticAttribute)))
+				
 				module.Members.Add(_interpreterField)
 	
 			return true

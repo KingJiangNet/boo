@@ -4149,7 +4149,7 @@ namespace Boo.Lang.Compiler.Steps
 
 		private void EmitRuntimeCoercionIfNeeded(IType expectedType, IType actualType)
 		{
-			if (TypeSystemServices.IsDuckType(actualType))
+			if (RuntimeServices.ShouldCallCoerceInEmitAssembly && TypeSystemServices.IsDuckType(actualType))
 			{
 				EmitGetTypeFromHandle(GetSystemType(expectedType)); PopType();
 				_il.EmitCall(OpCodes.Call, RuntimeServices_Coerce, null);
