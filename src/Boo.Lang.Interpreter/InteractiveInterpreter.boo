@@ -52,7 +52,7 @@ class InteractiveInterpreter(AbstractInterpreter):
 	Values as KeyValuePair[of string, object]*:
 		get: return _values
 		
-	def Reset():
+	virtual def Reset():
 		_values.Clear()
 		_declarations.Clear()
 		_lastValue = null
