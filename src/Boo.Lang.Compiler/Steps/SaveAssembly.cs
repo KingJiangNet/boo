@@ -41,7 +41,13 @@ namespace Boo.Lang.Compiler.Steps
 
 			var builder = ContextAnnotations.GetAssemblyBuilder(Context);
 			var filename = Path.GetFileName(Context.GeneratedAssemblyFileName);
-			Save(builder, filename);
+			try
+			{
+				Save(builder, filename);
+			}
+			catch
+			{
+			}
 		}
 
 		void Save(AssemblyBuilder builder, string filename)
